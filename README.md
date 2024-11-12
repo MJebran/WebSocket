@@ -1,19 +1,18 @@
-```markdown
+
 # WebSocket Project
 
 This project is a simple WebSocket setup using a C# API with ASP.NET Core and a Vite client. It showcases a minimalistic approach to WebSocket server-client communication, suitable for real-time applications.
 
 ## Project Structure
-
+```markdown
 The project is organized as follows:
 
-```
+project-root
 ├── api
-│   └── (C# Web API with WebSocket setup)
+│   └── C# Web API (WebSocket setup)
 └── client
-    └── (Vite Client for WebSocket communication)
+    └── Vite Client (WebSocket communication)
 ```
-
 - `api`: Contains the C# Web API for handling WebSocket connections.
 - `client`: Contains the Vite client setup to connect to the WebSocket server.
 
@@ -27,6 +26,8 @@ Run the following commands in your terminal:
 
 ```bash
 mkdir api
+```
+```bash
 mkdir client
 ```
 
@@ -51,7 +52,10 @@ mkdir client
 1. Move into the `client` directory:
 
     ```bash
-    cd ../client
+    cd ..
+    ```
+    ```bash
+    cd client
     ```
 
 2. Initialize a new Vite project and install dependencies:
