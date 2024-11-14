@@ -2,14 +2,12 @@ using System.Net.WebSockets;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddCors();
 
 
 var app = builder.Build();
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-});
+// i get cors error when i try to connect from a different domain
+app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
 app.UseWebSockets();
 
@@ -38,7 +36,7 @@ app.Use(async (context, next) =>
 
 });
 
-app.Run();
+
 
 static async Task Echo(WebSocket webSocket)
 {
@@ -48,6 +46,10 @@ static async Task Echo(WebSocket webSocket)
 
     while (!receiveResult.CloseStatus.HasValue)
     {
+        string bufferAsString = System.Text.Encoding.ASCII.GetString(buffer);
+        Console.WriteLine($"Received: {bufferAsString}");
+
+
         await webSocket.SendAsync(
             new ArraySegment<byte>(buffer, 0, receiveResult.Count),
             receiveResult.MessageType,
@@ -63,3 +65,6 @@ static async Task Echo(WebSocket webSocket)
         receiveResult.CloseStatusDescription,
         CancellationToken.None);
 }
+
+
+app.Run();
