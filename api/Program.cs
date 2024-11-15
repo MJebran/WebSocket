@@ -1,8 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 
-// ConcurrentBag<WebSocket> webSockets = new ConcurrentBag<WebSocket>();
-
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors();
 
@@ -10,7 +8,7 @@ var app = builder.Build();
 app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 app.UseWebSockets();
 
-
+var webSockets = new ConcurrentBag<WebSocket>();
 
 app.Use(async (context, next) =>
 {
@@ -20,8 +18,11 @@ app.Use(async (context, next) =>
         {
             using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
             Console.WriteLine("WebSocket Connected");
-            await Echo(webSocket);
-            Console.WriteLine("WebSocket closed");
+
+            webSockets.Add(webSocket);
+            await HandleWebSocket(webSocket, webSockets);
+
+            Console.WriteLine("WebSocket Disconnected");
         }
         else
         {
@@ -32,37 +33,39 @@ app.Use(async (context, next) =>
     {
         await next(context);
     }
-
 });
 
-
-static async Task Echo(WebSocket webSocket)
+static async Task HandleWebSocket(WebSocket currentSocket, ConcurrentBag<WebSocket> webSockets)
 {
     var buffer = new byte[1024 * 4];
-    var receiveResult = await webSocket.ReceiveAsync(
-        new ArraySegment<byte>(buffer), CancellationToken.None);
-
-    while (!receiveResult.CloseStatus.HasValue)
+    while (currentSocket.State == WebSocketState.Open)
     {
-        string bufferAsString = System.Text.Encoding.ASCII.GetString(buffer);
-        Console.WriteLine($"Received: {bufferAsString}");
+        var receiveResult = await currentSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+        if (receiveResult.MessageType == WebSocketMessageType.Text)
+        {
+            var message = System.Text.Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
+            Console.WriteLine($"Received: {message}");
 
-
-        await webSocket.SendAsync(
-            new ArraySegment<byte>(buffer, 0, receiveResult.Count),
-            receiveResult.MessageType,
-            receiveResult.EndOfMessage,
-            CancellationToken.None);
-
-        receiveResult = await webSocket.ReceiveAsync(
-            new ArraySegment<byte>(buffer), CancellationToken.None);
+            // Broadcast the message to all connected clients
+            foreach (var socket in webSockets)
+            {
+                if (socket != currentSocket && socket.State == WebSocketState.Open)
+                {
+                    await socket.SendAsync(
+                        new ArraySegment<byte>(System.Text.Encoding.UTF8.GetBytes(message)),
+                        WebSocketMessageType.Text,
+                        true,
+                        CancellationToken.None
+                    );
+                }
+            }
+        }
+        else if (receiveResult.MessageType == WebSocketMessageType.Close)
+        {
+            webSockets.TryTake(out _); // Remove disconnected socket
+            await currentSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by client", CancellationToken.None);
+        }
     }
-
-    await webSocket.CloseAsync(
-        receiveResult.CloseStatus.Value,
-        receiveResult.CloseStatusDescription,
-        CancellationToken.None);
 }
-
 
 app.Run();
