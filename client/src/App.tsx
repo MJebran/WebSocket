@@ -5,7 +5,7 @@ function App() {
   const [messages, setMessages] = useState<string[]>([]);
 
   useEffect(() => {
-    const newSocket = new WebSocket('ws://localhost:5263')
+    const newSocket = new WebSocket('ws://localhost:5263/ws')
     setSocket(newSocket);
     newSocket.addEventListener("open", () => {
       console.log('Connected');
@@ -32,7 +32,7 @@ function App() {
         socket.send('Hello Server');
       }}
       disabled={!socket}
-      ></button>
+      >Send</button>
       <div>
         {messages.map((message, i) => (
           <div key={i.toString()}>{message}</div>

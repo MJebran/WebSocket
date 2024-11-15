@@ -1,14 +1,13 @@
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 
+// ConcurrentBag<WebSocket> webSockets = new ConcurrentBag<WebSocket>();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors();
 
-
 var app = builder.Build();
-// i get cors error when i try to connect from a different domain
 app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-
 app.UseWebSockets();
 
 
@@ -35,7 +34,6 @@ app.Use(async (context, next) =>
     }
 
 });
-
 
 
 static async Task Echo(WebSocket webSocket)
